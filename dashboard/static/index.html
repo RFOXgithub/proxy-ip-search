@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Proxy IP Finder</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">NETWORK OPERATIONS</span>
+        <h1>Proxy IP Finder</h1>
+        <p>Kontrol tiga provider dalam satu workspace.</p>
+      </div>
+      <div class="live"><i></i> Integration server online</div>
+    </header>
+    <main>
+      <section class="summary">
+        <div><span>METHODS</span><strong id="methodCount">3</strong></div>
+        <div><span>RUNNING</span><strong id="runningCount">0</strong></div>
+        <div><span>IPS FOUND</span><strong id="foundCount">0</strong></div>
+        <div><span>LAST UPDATE</span><strong id="updatedAt">—</strong></div>
+      </section>
+      <section>
+        <div class="section-title">
+          <div>
+            <span>01 / METHODS</span>
+            <h2>Choose a search method</h2>
+          </div>
+          <p>Setiap proses berjalan dan dapat dihentikan secara independen.</p>
+        </div>
+        <div id="cards" class="cards"></div>
+      </section>
+      <section class="results">
+        <div class="section-title">
+          <div>
+            <span>02 / RESULTS</span>
+            <h2>Discovered proxy IPs</h2>
+          </div>
+          <div class="actions">
+            <input
+              id="search"
+              type="search"
+              placeholder="Search IP, source, city…"
+            /><button id="copyAll" class="secondary">Copy all</button
+            ><button id="exportCsv" class="secondary">Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="ip">IP ↕</th>
+                <th data-sort="port">PORT / SESSION ↕</th>
+                <th>TYPE</th>
+                <th>STATUS</th>
+                <th data-sort="source">SOURCE ↕</th>
+                <th>LATENCY</th>
+                <th data-sort="timestamp">TIMESTAMP ↕</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr>
+                <td colspan="8" class="empty">
+                  Belum ada hasil. Jalankan salah satu metode di atas.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <div id="toast" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "dashboard/static",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{dashboard/**,impulse/**,oxy/**,royale/**,tests/**,**/tests/**,**/__pycache__/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/proxy?path=:path*" }
+  ]
+}
