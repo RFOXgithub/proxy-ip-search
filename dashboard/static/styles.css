@@ -83,6 +83,10 @@ p {
   margin-right: 8px;
   box-shadow: 0 0 0 4px #52b78818;
 }
+.live.offline i {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px #ff6b6b18;
+}
 main {
   padding-bottom: 60px;
 }
