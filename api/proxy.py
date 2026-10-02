@@ -24,7 +24,14 @@ class handler(BaseHTTPRequestHandler):
         if query:
             upstream += "?" + urlencode(query, doseq=True)
 
-        length = int(self.headers.get("Content-Length", "0"))
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._json(400, {"error": "Content-Length tidak valid."})
+            return
+        if not 0 <= length <= 100_000:
+            self._json(400, {"error": "Panjang payload harus antara 0 dan 100000 byte."})
+            return
         body = self.rfile.read(length) if length else None
         headers = {"Accept": "application/json"}
         if self.headers.get("Content-Type"):

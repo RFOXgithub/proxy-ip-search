@@ -83,7 +83,7 @@ class FinderTests(unittest.TestCase):
         response.raise_for_status.side_effect = error
         response.json.return_value = payload
         response.json.side_effect = json_error
-        with patch('dataimpulse_finder.client.requests.Session') as factory:
+        with patch('proxy_finder.client.requests.Session') as factory:
             factory.return_value.__enter__.return_value = session
             result = fetch_ip_info(self.settings, 10000, Event(),
                                    time.monotonic() + 1)
@@ -106,7 +106,7 @@ class FinderTests(unittest.TestCase):
         self.assertIsNone(self.fetch(json_error=ValueError()))
 
     def test_http_error_redacted(self):
-        with self.assertLogs('dataimpulse_finder.client') as logs:
+        with self.assertLogs('proxy_finder.client') as logs:
             self.assertIsNone(self.fetch(error=requests.HTTPError('SECRET')))
         self.assertNotIn('SECRET', ''.join(logs.output))
 
@@ -117,7 +117,7 @@ class FinderTests(unittest.TestCase):
             seen.append(port)
             return None
 
-        with patch('dataimpulse_finder.service.fetch_ip_info',
+        with patch('proxy_finder.service.fetch_ip_info',
                    side_effect=fetch):
             self.assertIsNone(find_matching_ip(self.settings))
         self.assertEqual(sorted(seen), [10000, 10001, 10002])
@@ -125,13 +125,13 @@ class FinderTests(unittest.TestCase):
     def test_cancel_before_start(self):
         stop = Event()
         stop.set()
-        with patch('dataimpulse_finder.service.fetch_ip_info') as fetch:
+        with patch('proxy_finder.service.fetch_ip_info') as fetch:
             self.assertIsNone(find_matching_ip(self.settings, stop))
             fetch.assert_not_called()
 
     def test_first_match(self):
         match = Match('185.30.88.2', 10000, 'Baku', 'ISP')
-        with patch('dataimpulse_finder.service.fetch_ip_info',
+        with patch('proxy_finder.service.fetch_ip_info',
                    return_value=match):
             self.assertEqual(find_matching_ip(self.settings), [match])
 
@@ -140,7 +140,7 @@ class FinderTests(unittest.TestCase):
             time.sleep(0.03)
             return Match('185.30.88.2', 10000, 'Baku', 'ISP')
 
-        with patch('dataimpulse_finder.service.fetch_ip_info',
+        with patch('proxy_finder.service.fetch_ip_info',
                    side_effect=fetch):
             self.assertIsNone(find_matching_ip(replace(
                 self.settings, execution_duration=0.01,
@@ -148,13 +148,18 @@ class FinderTests(unittest.TestCase):
 
     def test_validation(self):
         for changes in ({'start_port': 9999}, {'end_port': 20001},
-                        {'start_port': 10003}, {'country': ''},
+                        {'start_port': 10003}, {'country': 'invalid'},
                         {'proxy_mode': 'bad'}, {'asn': 0},
                         {'city': 'baku;asn.1'}, {'max_workers': 0},
                         {'proxy_username': 'login__cr.az'},
                         {'request_timeout': float('nan')}):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 replace(self.settings, **changes)
+
+    def test_country_can_be_omitted(self):
+        self.assertNotIn('__cr.', self.username(replace(
+            self.settings, country='', city='', asn=None,
+        )))
 
 
 if __name__ == '__main__':

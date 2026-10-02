@@ -22,7 +22,7 @@ class FinderTests(unittest.TestCase):
         response.status_code = 200
         response.json.return_value = payload
         response.raise_for_status.side_effect = error
-        with patch('iproyal_finder.client.requests.Session') as factory:
+        with patch('proxy_finder.client.requests.Session') as factory:
             factory.return_value.__enter__.return_value = session
             result = fetch_ip_info(self.settings, 'm18m0001', Event(),
                                    time.monotonic() + 1)
@@ -42,12 +42,12 @@ class FinderTests(unittest.TestCase):
                 self.assertIsNone(self.fetch(payload))
 
     def test_http_failure_does_not_log_credentials(self):
-        with self.assertLogs('iproyal_finder.client') as logs:
+        with self.assertLogs('proxy_finder.client') as logs:
             self.assertIsNone(self.fetch(error=requests.HTTPError('SECRET')))
         self.assertNotIn('SECRET', ''.join(logs.output))
 
     def test_bad_json(self):
-        with patch('iproyal_finder.client.requests.Session') as factory:
+        with patch('proxy_finder.client.requests.Session') as factory:
             response = (factory.return_value.__enter__.return_value.get
                         .return_value.__enter__.return_value)
             response.status_code = 200
@@ -64,7 +64,7 @@ class FinderTests(unittest.TestCase):
     def test_pre_cancelled_does_not_submit(self):
         stop = Event()
         stop.set()
-        with patch('iproyal_finder.service.fetch_ip_info') as fetch:
+        with patch('proxy_finder.service.fetch_ip_info') as fetch:
             self.assertIsNone(find_matching_ip(self.settings, stop))
             fetch.assert_not_called()
 
@@ -72,7 +72,7 @@ class FinderTests(unittest.TestCase):
         stop = Event()
         match = {'ip': '185.30.88.2', 'session': 'm18m0001',
                  'city': 'N/A', 'isp': 'N/A'}
-        with patch('iproyal_finder.service.fetch_ip_info', return_value=match):
+        with patch('proxy_finder.service.fetch_ip_info', return_value=match):
             self.assertEqual(find_matching_ip(self.settings, stop), [match])
         self.assertTrue(stop.is_set())
 
@@ -83,7 +83,7 @@ class FinderTests(unittest.TestCase):
             seen.append(session_id)
             return None
 
-        with patch('iproyal_finder.service.fetch_ip_info', side_effect=fetch):
+        with patch('proxy_finder.service.fetch_ip_info', side_effect=fetch):
             self.assertIsNone(find_matching_ip(self.settings))
         self.assertGreater(len(seen), 2)
         self.assertEqual(len(seen), len(set(seen)))
@@ -95,7 +95,7 @@ class FinderTests(unittest.TestCase):
             stop.set()
             return None
 
-        with patch('iproyal_finder.service.fetch_ip_info', side_effect=fetch):
+        with patch('proxy_finder.service.fetch_ip_info', side_effect=fetch):
             self.assertIsNone(find_matching_ip(self.settings, stop))
 
     def test_invalid_configuration(self):

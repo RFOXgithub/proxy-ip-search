@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import csv
 import importlib.util
-import io
 import json
 import mimetypes
 import os
@@ -88,6 +86,8 @@ def env_config(key: str) -> dict[str, str]:
 
 
 def config_for(key: str, supplied: dict[str, Any]):
+    if not isinstance(supplied, dict):
+        raise ValueError("Config harus berupa objek JSON")
     cls = MODULES[key].Settings
     env = env_config(key)
     secret_map = {"proxy_username": "proxy_username", "proxy_password": "proxy_password"}
@@ -229,10 +229,10 @@ def run_job(job_id: str, key: str, settings: Any) -> None:
                 job["status"] = "completed"
                 matched = bool(results)
                 job["message"] = "IP cocok ditemukan" if matched else "Selesai, IP tidak ditemukan / tidak cocok"
-    except Exception as exc:
+    except Exception:
         with LOCK:
             job["status"] = "failed"
-            job["message"] = f"{type(exc).__name__}: {exc}"
+            job["message"] = "Pencarian gagal. Periksa konfigurasi dan koneksi provider."
     finally:
         with LOCK:
             job["finished_at"] = time.time()
@@ -264,9 +264,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
-        if length > 100_000:
-            raise ValueError("Payload terlalu besar")
-        return json.loads(self.rfile.read(length) or b"{}")
+        if not 0 <= length <= 100_000:
+            raise ValueError("Panjang payload harus antara 0 dan 100000 byte")
+        payload = json.loads(self.rfile.read(length) or b"{}")
+        if not isinstance(payload, dict):
+            raise ValueError("Payload harus berupa objek JSON")
+        return payload
 
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
@@ -317,8 +320,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": "Endpoint tidak ditemukan"}, 404)
         except (ValueError, TypeError, json.JSONDecodeError) as exc:
             self.send_json({"error": str(exc)}, 400)
-        except Exception as exc:
-            self.send_json({"error": f"{type(exc).__name__}: {exc}"}, 500)
+        except Exception:
+            self.send_json({"error": "Terjadi kesalahan internal pada server"}, 500)
 
 
 def main() -> None:

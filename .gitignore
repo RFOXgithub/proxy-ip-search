@@ -14,3 +14,22 @@ venv/
 *.log
 .vercel/
 .DS_Store
+
+# Tooling and build artifacts
+node_modules/
+dist/
+build/
+.design-qa/
+.ruff_cache/
+.hypothesis/
+.coverage.*
+coverage.xml
+coverage/
+playwright-report/
+test-results/
+
+# Local editor and OS files
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini

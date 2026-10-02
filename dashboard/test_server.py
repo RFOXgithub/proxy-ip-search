@@ -1,20 +1,58 @@
+import io
 import threading
 import time
 import unittest
 from unittest.mock import patch
 
 from dashboard import server
+from api.proxy import handler as ProxyHandler
+
+ORIGINAL_ENV_CONFIG = server.env_config
 
 
 class DashboardIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        environment = patch.object(server, 'env_config', return_value={
+            'proxy_username': 'test-user', 'proxy_password': 'test-password',
+        })
+        environment.start()
+        self.addCleanup(environment.stop)
+        self.addCleanup(server.JOBS.clear)
+
     def test_prefixed_process_environment_overrides_local_provider_env(self):
-        with patch.dict("os.environ", {
+        with patch.object(server, 'env_config', wraps=ORIGINAL_ENV_CONFIG), patch.dict("os.environ", {
             "OXY_PROXY_USERNAME": "deployment-user",
             "OXY_PROXY_PASSWORD": "deployment-password",
         }, clear=False):
             values = server.env_config("oxy")
         self.assertEqual(values["proxy_username"], "deployment-user")
         self.assertEqual(values["proxy_password"], "deployment-password")
+
+    def test_invalid_payload_shapes_and_lengths(self):
+        for payload in (b'[]', b'null', b'"text"', b'1'):
+            handler = object.__new__(server.Handler)
+            handler.headers = {'Content-Length': str(len(payload))}
+            handler.rfile = io.BytesIO(payload)
+            with self.subTest(payload=payload), self.assertRaises(ValueError):
+                handler.body()
+        for length in ('-1', '100001', 'invalid'):
+            handler.headers = {'Content-Length': length}
+            with self.subTest(length=length), self.assertRaises(ValueError):
+                handler.body()
+        for config in (None, [], 'text', 1):
+            with self.subTest(config=config), self.assertRaises(ValueError):
+                server.config_for('oxy', config)
+
+    def test_proxy_rejects_invalid_lengths_without_forwarding(self):
+        for length in ('-1', '100001', 'invalid'):
+            handler = object.__new__(ProxyHandler)
+            handler.path = '/api/proxy?path=methods/oxy/run'
+            handler.headers = {'Content-Length': length}
+            handler._json = unittest.mock.Mock()
+            with patch.dict('os.environ', {'BACKEND_URL': 'https://backend.example'}), patch('api.proxy.urlopen') as forward:
+                handler._forward()
+            self.assertEqual(handler._json.call_args.args[0], 400)
+            forward.assert_not_called()
 
     def test_all_provider_configs_load_without_exposing_secrets(self):
         public = server.public_methods()
@@ -97,7 +135,7 @@ class DashboardIntegrationTests(unittest.TestCase):
     def test_method_failure_is_isolated(self):
         bad_id, bad_settings = self.make_job("oxy")
         good_id, good_settings = self.make_job("impulse")
-        with patch.object(server.MODULES["oxy"], "find_matching_ip", side_effect=RuntimeError("boom")):
+        with patch.object(server.MODULES["oxy"], "find_matching_ip", side_effect=RuntimeError("secret-password")):
             server.run_job(bad_id, "oxy", bad_settings)
         match = server.MODULES["impulse"].find_matching_ip.__globals__["Match"](
             "185.30.88.2", 10002, "Baku", "ISP"
@@ -105,6 +143,7 @@ class DashboardIntegrationTests(unittest.TestCase):
         with patch.object(server.MODULES["impulse"], "find_matching_ip", return_value=[match]):
             server.run_job(good_id, "impulse", good_settings)
         self.assertEqual(server.JOBS[bad_id]["status"], "failed")
+        self.assertNotIn('secret-password', server.JOBS[bad_id]['message'])
         self.assertEqual(server.JOBS[good_id]["status"], "completed")
         self.assertEqual(len(server.JOBS[good_id]["results"]), 1)
 

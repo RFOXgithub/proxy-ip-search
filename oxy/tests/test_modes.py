@@ -47,10 +47,15 @@ class ModeTests(unittest.TestCase):
     def test_invalid_active_settings(self):
         for extra in ('PROXY_MODE=wrong', 'PROXY_MODE=asn\nASN=abc',
                       'PROXY_MODE=asn\nASN=0',
-                      'PROXY_MODE=location\nCOUNTRY=',
+                      'PROXY_MODE=location\nCOUNTRY=invalid',
                       'PROXY_MODE=location\nCITY=sakarya-asn-1'):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 self.load(extra)
+
+    def test_country_can_be_omitted(self):
+        self.assertNotIn('-cc-', self.username(self.load(
+            'PROXY_MODE=location\nCOUNTRY=\nCITY=\n'
+        )))
 
 
 if __name__ == '__main__':

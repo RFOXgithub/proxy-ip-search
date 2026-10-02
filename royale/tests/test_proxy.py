@@ -65,9 +65,9 @@ class ProxyTests(unittest.TestCase):
                 stop.set()
             return None
 
-        with patch('iproyal_finder.service.secrets.choice',
+        with patch('proxy_finder.service.secrets.choice',
                    side_effect=lambda _: next(chars)), patch(
-                       'iproyal_finder.service.fetch_ip_info',
+                       'proxy_finder.service.fetch_ip_info',
                        side_effect=fetch):
             find_matching_ip(replace(self.settings, max_workers=2))
         self.assertEqual(seen[:2], ['m18maaaa', 'm18mbbbb'])
