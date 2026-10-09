@@ -12,7 +12,6 @@ venv/
 .env.*
 !.env.example
 *.log
-.vercel/
 .DS_Store
 
 # Tooling and build artifacts
@@ -33,3 +32,22 @@ test-results/
 .vscode/
 Thumbs.db
 Desktop.ini
+
+# AI agent / skill tooling (untracked)
+.agents/
+.claude/
+.cursor/
+.codex/
+.gemini/
+.github/copilot-instructions.md
+skills/
+skills-lock.json
+CLAUDE.md
+AGENTS.md
+
+# Misc
+.env.local
+*.tmp
+*.bak
+*.swp
+.venv/
